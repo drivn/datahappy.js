@@ -1,10 +1,32 @@
 (function (window) {
   var datahappy = function () {
-    this._setFtLtUTMs();
     return;
   };
 
-  datahappy.prototype.init = function () {};
+  datahappy.prototype.init = function (config) {
+    this.debug = "debug" in config ? config.debug : false;
+    this.linker = "linker" in config ? config.linker : "";
+
+    this._parseQuery();
+    this._setFtLtUTMs();
+
+    if (this.linker) {
+      // give MP a chance to initialise
+      setTimeout(() => {
+        this._updateHrefs();
+      }, 300);
+    }
+  };
+
+  datahappy.prototype.currentUTMs = function () {
+    const searchParams = new URLSearchParams(window.location.search);
+    var currentUTMs = {};
+    for (const [key, value] of searchParams.entries()) {
+      const isUTMParam = key.indexOf("utm_") > -1;
+      isUTMParam && (currentUTMs[key] = value);
+    }
+    return currentUTMs;
+  };
 
   datahappy.prototype.getFtUTMs = function () {
     return {
@@ -26,33 +48,44 @@
     };
   };
 
-  datahappy.prototype.getLtUTMs = function () {
+  datahappy.prototype.getLtUTMs = function (appendWith = "_lt") {
     return {
       ...(window.mixpanel.get_property("utm_campaign_lt") && {
-        utm_campaign_lt: window.mixpanel.get_property("utm_campaign_lt")
+        ["utm_campaign" + appendWith]: window.mixpanel.get_property(
+          "utm_campaign_lt"
+        )
       }),
       ...(window.mixpanel.get_property("utm_source_lt") && {
-        utm_source_lt: window.mixpanel.get_property("utm_source_lt")
+        ["utm_source" + appendWith]: window.mixpanel.get_property(
+          "utm_source_lt"
+        )
       }),
       ...(window.mixpanel.get_property("utm_medium_lt") && {
-        utm_medium_lt: window.mixpanel.get_property("utm_medium_lt")
+        ["utm_medium" + appendWith]: window.mixpanel.get_property(
+          "utm_medium_lt"
+        )
       }),
       ...(window.mixpanel.get_property("utm_term_lt") && {
-        utm_term_lt: window.mixpanel.get_property("utm_term_lt")
+        ["utm_term" + appendWith]: window.mixpanel.get_property("utm_term_lt")
       }),
       ...(window.mixpanel.get_property("utm_content_lt") && {
-        utm_content_lt: window.mixpanel.get_property("utm_content_lt")
+        ["utm_content" + appendWith]: window.mixpanel.get_property(
+          "utm_content_lt"
+        )
       })
     };
   };
 
-  datahappy.prototype._setFtLtUTMs = function () {
-    const searchParams = new URLSearchParams(window.location.search);
-    var currentUTMs = {};
-    for (const [key, value] of searchParams.entries()) {
-      const isUTMParam = key.indexOf("utm_") > -1;
-      isUTMParam && (currentUTMs[key] = value);
+  datahappy.prototype._parseQuery = function () {
+    var searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get("dh_uid")) {
+      window.analytics.identify(searchParams.get("dh_uid"));
     }
+  };
+
+  datahappy.prototype._setFtLtUTMs = function () {
+    const currentUTMs = this.currentUTMs();
+
     var currentUTMsLt = {};
     for (const [key, value] of Object.entries(currentUTMs)) {
       currentUTMsLt[key + "_lt"] = value;
@@ -60,7 +93,7 @@
 
     // wait for mixpanel SDK to be instantiated
     window.analytics.ready(function () {
-      isStaging && window.mixpanel.set_config({ debug: true });
+      window.datahappy.debug && window.mixpanel.set_config({ debug: true });
 
       if (Object.keys(currentUTMs).length !== 0) {
         // update LT UTMs to MP only
@@ -78,6 +111,43 @@
 
       window.analytics.page();
     });
+  };
+
+  datahappy.prototype._updateHrefs = function () {
+    // start by constructing the params we need to add
+    var urlParamsToAdd = new URLSearchParams();
+
+    // add user id if it exists
+    const uid = window.analytics.user().id();
+    uid && urlParamsToAdd.append("dh_uid", uid);
+
+    // add LT UTMs if they exist
+    const ltUTMs = this.getLtUTMs("");
+    for (const [key, value] of Object.entries(ltUTMs)) {
+      urlParamsToAdd.append(key, value);
+    }
+
+    const urlParamsToAddStr = urlParamsToAdd.toString();
+
+    // only update if we have params to add
+    if (urlParamsToAddStr) {
+      const links = document.querySelectorAll("a[href^='" + this.linker + "']");
+      // loop through all links containing domain of interest
+      links.forEach(function (link) {
+        const linkURL = new URL(link);
+        // current URL may have its own search params
+        const linkParams = linkURL.searchParams;
+
+        // add to existing param set
+        for (const [key, value] of urlParamsToAdd.entries()) {
+          linkParams.append(key, value);
+        }
+
+        // update the search string
+        linkURL.search = linkParams.toString();
+        link.setAttribute("href", linkURL.href);
+      });
+    }
   };
 
   window.datahappy = new datahappy();
