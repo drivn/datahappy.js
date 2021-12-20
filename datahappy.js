@@ -14,13 +14,6 @@
     this._setFtLtUTMs();
 
     this.initialized = true;
-
-    if (this.linker) {
-      // give MP a chance to initialise
-      setTimeout(() => {
-        this._updateHrefs();
-      }, 300);
-    }
   };
 
   datahappy.prototype.currentUTMs = function () {
@@ -115,6 +108,13 @@
       }
 
       window.analytics.page();
+
+      if (window.datahappy.linker) {
+        // give MP a chance to initialise
+        setTimeout(() => {
+          window.datahappy._updateHrefs();
+        }, 500);
+      }
     });
   };
 
