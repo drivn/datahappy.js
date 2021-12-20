@@ -1,6 +1,9 @@
 (function (window) {
   var datahappy = function () {
-    return;
+    // catch up to any buffered method calls
+    for (const call of window.datahappy.buffered) {
+      this[call[0]](call[1]);
+    }
   };
 
   datahappy.prototype.init = function (config) {
@@ -9,6 +12,8 @@
 
     this._parseQuery();
     this._setFtLtUTMs();
+
+    this.initialized = true;
 
     if (this.linker) {
       // give MP a chance to initialise
