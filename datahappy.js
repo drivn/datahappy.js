@@ -12,6 +12,7 @@
 
     this._parseQuery();
     this._setFtLtUTMs();
+    this.linker && this._updateHrefs();
 
     this.initialized = true;
   };
@@ -108,51 +109,46 @@
       }
 
       window.analytics.page();
-
-      if (window.datahappy.linker) {
-        // give MP a chance to initialise
-        setTimeout(() => {
-          window.datahappy._updateHrefs();
-        }, 500);
-      }
     });
   };
 
   datahappy.prototype._updateHrefs = function () {
-    // start by constructing the params we need to add
-    var urlParamsToAdd = new URLSearchParams();
+    const links = document.querySelectorAll("a[href^='" + this.linker + "']");
+    // loop through all links containing domain of interest
+    links.forEach(function (link) {
+      link.addEventListener("click", function () {
+        // start by constructing the params we need to add
+        var urlParamsToAdd = new URLSearchParams();
 
-    // add user id if it exists
-    const uid = window.analytics.user().id();
-    uid && urlParamsToAdd.append("dh_uid", uid);
+        // add user id if it exists
+        const uid = window.analytics.user().id();
+        uid && urlParamsToAdd.append("dh_uid", uid);
 
-    // add LT UTMs if they exist
-    const ltUTMs = this.getLtUTMs("");
-    for (const [key, value] of Object.entries(ltUTMs)) {
-      urlParamsToAdd.append(key, value);
-    }
-
-    const urlParamsToAddStr = urlParamsToAdd.toString();
-
-    // only update if we have params to add
-    if (urlParamsToAddStr) {
-      const links = document.querySelectorAll("a[href^='" + this.linker + "']");
-      // loop through all links containing domain of interest
-      links.forEach(function (link) {
-        const linkURL = new URL(link);
-        // current URL may have its own search params
-        const linkParams = linkURL.searchParams;
-
-        // add to existing param set
-        for (const [key, value] of urlParamsToAdd.entries()) {
-          linkParams.append(key, value);
+        // add LT UTMs if they exist
+        const ltUTMs = window.datahappy.getLtUTMs("");
+        for (const [key, value] of Object.entries(ltUTMs)) {
+          urlParamsToAdd.append(key, value);
         }
 
-        // update the search string
-        linkURL.search = linkParams.toString();
-        link.setAttribute("href", linkURL.href);
+        const urlParamsToAddStr = urlParamsToAdd.toString();
+
+        // only update if we have params to add
+        if (urlParamsToAddStr) {
+          const linkURL = new URL(link);
+          // current URL may have its own search params
+          const linkParams = linkURL.searchParams;
+
+          // add to existing param set
+          for (const [key, value] of urlParamsToAdd.entries()) {
+            linkParams.append(key, value);
+          }
+
+          // update the search string
+          linkURL.search = linkParams.toString();
+          link.setAttribute("href", linkURL.href);
+        }
       });
-    }
+    });
   };
 
   window.datahappy = new datahappy();
