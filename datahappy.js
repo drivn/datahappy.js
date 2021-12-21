@@ -75,6 +75,24 @@
     };
   };
 
+  datahappy.prototype.getFBCookies = function () {
+    var fbp = document.cookie
+      .split(";")
+      .filter((c) => c.includes("_fbp="))
+      .map((c) => c.split("_fbp=")[1]);
+    var fbc = document.cookie
+      .split(";")
+      .filter((c) => c.includes("_fbc="))
+      .map((c) => c.split("_fbc=")[1]);
+    fbp = (fbp.length && fbp[0]) || null;
+    fbc = (fbc.length && fbc[0]) || null;
+
+    return {
+      ...(fbp && { fbp }),
+      ...(fbc && { fbc })
+    };
+  };
+
   datahappy.prototype._parseQuery = function () {
     var searchParams = new URLSearchParams(window.location.search);
     if (searchParams.get("dh_uid")) {
