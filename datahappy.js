@@ -1,8 +1,14 @@
 (function (window) {
   var datahappy = function () {
-    // catch up to any buffered method calls
-    for (const call of window.datahappy.buffered) {
-      this[call[0]](call[1]);
+    // check if need to catch up on any buffered method calls
+    if (
+      window.datahappy &&
+      window.datahappy.buffered &&
+      window.datahappy.buffered.length
+    ) {
+      for (const call of window.datahappy.buffered) {
+        this[call[0]](call[1]);
+      }
     }
   };
 
