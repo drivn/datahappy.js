@@ -110,17 +110,18 @@
     const ftUTMs = window.datahappy.getFtUTMs();
     const ltUTMs = window.datahappy.getLtUTMs("_lt");
 
-    window.rudderanalytics.page({ ...ltUTMs }, {
-      context: {
+    const options = {};
+    if (ftUTMs) options.context = {
         campaign: {
-          ...(ftUTMs.utm_source && { source: ftUTMs.utm_source }),
-          ...(ftUTMs.utm_medium && { medium: ftUTMs.utm_medium }),
-          ...(ftUTMs.utm_campaign && { name: ftUTMs.utm_campaign }),
-          ...(ftUTMs.utm_term && { term: ftUTMs.utm_term }),
-          ...(ftUTMs.utm_content && { content: ftUTMs.utm_content })
-        }
+        ...(ftUTMs.utm_source && { source: ftUTMs.utm_source }),
+        ...(ftUTMs.utm_medium && { medium: ftUTMs.utm_medium }),
+        ...(ftUTMs.utm_campaign && { name: ftUTMs.utm_campaign }),
+        ...(ftUTMs.utm_term && { term: ftUTMs.utm_term }),
+        ...(ftUTMs.utm_content && { content: ftUTMs.utm_content })
       }
-    });
+    };
+
+    window.rudderanalytics.page({ ...ltUTMs }, options);
   }
 
   function updateOutboundLinks(linker) {
