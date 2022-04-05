@@ -14,12 +14,30 @@
 
     parseQuery();
     updateStoredUTMs();
-    trackPageview();
+    this.trackPageview();
 
     config.linker && updateOutboundLinks(config.linker);
     config.adjust && updateAppDownloadCTAs(config.adjust);
 
     this.initialized = true;
+  };
+
+  datahappy.prototype.trackPageview = () => {
+    const ftUTMs = window.datahappy.getFtUTMs();
+    const ltUTMs = window.datahappy.getLtUTMs("_lt");
+
+    const options = {};
+    if (ftUTMs) options.context = {
+        campaign: {
+        ...(ftUTMs.utm_source && { source: ftUTMs.utm_source }),
+        ...(ftUTMs.utm_medium && { medium: ftUTMs.utm_medium }),
+        ...(ftUTMs.utm_campaign && { name: ftUTMs.utm_campaign }),
+        ...(ftUTMs.utm_term && { term: ftUTMs.utm_term }),
+        ...(ftUTMs.utm_content && { content: ftUTMs.utm_content })
+      }
+    };
+
+    window.rudderanalytics.page({ ...ltUTMs }, options);
   };
 
   datahappy.prototype.trackConversion = (eventName, properties, traits=null) => {
@@ -104,24 +122,6 @@
       // always update LT UTMs
       localStorage.setItem('dh_utms_lt', JSON.stringify(currentUTMs));
     }
-  }
-
-  function trackPageview() {
-    const ftUTMs = window.datahappy.getFtUTMs();
-    const ltUTMs = window.datahappy.getLtUTMs("_lt");
-
-    const options = {};
-    if (ftUTMs) options.context = {
-        campaign: {
-        ...(ftUTMs.utm_source && { source: ftUTMs.utm_source }),
-        ...(ftUTMs.utm_medium && { medium: ftUTMs.utm_medium }),
-        ...(ftUTMs.utm_campaign && { name: ftUTMs.utm_campaign }),
-        ...(ftUTMs.utm_term && { term: ftUTMs.utm_term }),
-        ...(ftUTMs.utm_content && { content: ftUTMs.utm_content })
-      }
-    };
-
-    window.rudderanalytics.page({ ...ltUTMs }, options);
   }
 
   function updateOutboundLinks(linker) {
